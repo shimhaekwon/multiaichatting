@@ -1,0 +1,20 @@
+LLM 들과 대화하면서 brain storiming 하여 내 머리속에 정리되지 않은 아이템들 또는 프로젝트들을 정리해보고 싶어, 적어도 둘 이상의 LLM이 참여하면 좋겠고, 
+제한은 
+1. LLM은 한 라운드 당 한번 response 할 수  있다.
+2. 한번에 1000 토큰 초과 response 금지 (round마다 request에 자동 추가 희망)
+3. LLM들이 response 후, 나의 다음 request와 함께 LLM 들의 response를 타 LLM에게 같이 전달하기(round단위로 response 전달)
+  ex) 포맷은 개발 편의성에 따라 json, md, yaml, 일반 텍스트 등
+  gemini에게 {"chatgpt":"그건 아닌거 같은데", "claude":"그럴 수도 있어"}
+  claude에게 {"chatgpt":"그건 아닌거 같은데", "gemini":"그럴 수도 있어"}
+  chargpt에게 {"gemini":"고민스럽네", "claude":"그럴 수도 있어"}
+4. 무한정 request/response를 진행할 수 없고 제한하는 기능을 추가. 처음에 횟수를 지정(3~9), 중간에 stop 가능함
+5. chathub 처럼 크롬 브라우져 로그인한 google 계정으로 접근 가능한 LLM 들과 대화
+6. LLM 목록은 top 8 까지만 보여주기
+7. LLM 들의 response 순서는 제한하지 않음.
+8. 크롬 확장 프로그램으로 개발하고 싶음
+9. 비밀 채팅처럼 특정 LLM과 채팅할 수 있는 기능도 있으면 좋겠음(전체 맥락과 별도, 이건 전체 대화와 무관하게 해당 LLM과 사용자만 별도로 이야기하는거 - 이것도 1000토큰 제한, 이건 저장안함)
+10. LLM 종류는 chatgpt, gemini, claude, deepseek, mistral, grok, kimi, perplxity, pi, qwen
+11. 대화 중 LLM 의 response가 너무 길어지거나, 느리게 오면 STOP 하는 기능 희망. - 사용자가 STOP 버튼 클릭(자동 stop 없음)
+12. 최종 산출물은...  md 스타일로 정리  : LLM명.md
+       Request , Reseponse, Request(+ other LLM Response) 이렇게 정리하면 좋겠음
+13. 최종 정리본 md 생성 희망       
