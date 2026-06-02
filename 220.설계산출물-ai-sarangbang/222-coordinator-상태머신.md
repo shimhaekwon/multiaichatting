@@ -65,6 +65,7 @@ class Coordinator {
     private driver: AgentDriver,
     private publish: (m: Message) => void,               // 새 Message를 history에 push + UI emit
     private onState: (id: ParticipantId, s: TurnState) => void,
+    private onWhisper: (target: ParticipantId, thread: Whisper) => void,  // [C1] 휘발 UI emit(history/MD/스냅샷 미오염)
   ) {}
 
   private setState(id: ParticipantId, s: TurnState) { this.turnState.set(id, s); this.onState(id, s) }
@@ -153,9 +154,12 @@ class Coordinator {
     this.whispers.set(target, w)
     w.messages.push({ by: 'human', text })
     const reply = { by: target, text: '' }; w.messages.push(reply)
+    this.onWhisper(target, w)                  // [C1] 휘발 UI emit — 공개 publish 아님(history/MD/스냅샷 미오염, §7)
     const ac = new AbortController(); const to = setTimeout(() => ac.abort(), WHISPER_TIMEOUT_MS)
     try {
-      for await (const tok of this.driver.speak(whisperContext(target, w, this.room), ac.signal)) reply.text += tok
+      for await (const tok of this.driver.speak(whisperContext(target, w, this.room), ac.signal)) {
+        reply.text += tok; this.onWhisper(target, w)   // 토큰마다 휘발 emit(WhisperPanel 타이핑)
+      }
     } catch { /* abort/error: 부분 보존, 공개 로그·MD·스냅샷 미기록([223] §2) */ } finally { clearTimeout(to) }
   }
 }
@@ -185,6 +189,7 @@ endMessage(msg: Message, status: MessageStatus): void
 
 ## 7. Whisper 채널 (R4) [H-3]
 - floor 루프 **밖**(§4 `whisper()`). 사람 ↔ 특정 참가자 1:1. **휘발**: `whispers: Map`에만 존재, 공개 `history`·로그·MD·스냅샷 **미기록**([223] §2).
+- **[C1] UI 렌더 경로**: WhisperPanel은 `onWhisper(target, thread)` emit 구독(공개 `publish`와 **별개 채널**). 토큰마다 발화 → 귓속말도 타이핑 렌더. **휘발 UI 전용**(history/MD/스냅샷 미포함 — 불변식 유지하며 화면엔 그림).
 - **컨텍스트**: `whisperContext(target, w, room)`가 whisper 스레드(`Whisper.messages`)를 **`SpeakContext`로 변환**해 드라이버에 넘긴다([223] §4.1 정의) — 드라이버 seam(§8 `speak(ctx:SpeakContext,…)`)이 타입 수준에서 whisper 수용. 공개 history는 참조하지 않음(사적 격리).
 - 동시성: floor와 독립. 같은 모델 경합 시(P1 Ollama 단일) 직렬화 — [C2] 미정. 타임아웃으로 hang 방지.
 
