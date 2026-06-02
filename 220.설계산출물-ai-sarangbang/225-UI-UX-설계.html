@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>225. UI/UX 설계 — ai-sarangbang</title>
+<style>
+  /* ===== 90s PC통신(하이텔/나우누리) 디자인 토큰 — O1 확정안 ===== */
+  :root{
+    --bg:#0a0e2e; --panel:#11173f; --panel2:#0d1235; --line:#2a3470;
+    --ink:#cdd6ff; --dim:#6b76b8; --accent:#ffcc00;
+    --me:#46ff9c; --ai1:#5ad1ff; --ai2:#ffd24a; --ai3:#ff7ad1; --ai4:#9a8bff;
+    --stopped:#ff5b6e; --whisper:#b388ff;
+    --mono:'Galmuri11','DungGeunMo','NeoDunggeunmo','D2Coding','Consolas',monospace;
+    --doc:'Pretendard','맑은 고딕','Malgun Gothic',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#070a20;color:#e7ecff;font-family:var(--doc);line-height:1.65;font-size:15px}
+  .wrap{max-width:1000px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-family:var(--mono);color:var(--accent);font-size:26px;margin:0 0 4px;letter-spacing:.5px}
+  h2{font-family:var(--mono);color:#8fa0ff;border-bottom:1px solid var(--line);padding-bottom:6px;margin:42px 0 14px;font-size:19px}
+  h3{color:#aeb9ff;margin:24px 0 8px;font-size:16px}
+  a{color:#7aa2ff}
+  .banner{background:var(--panel);border-left:3px solid var(--accent);padding:12px 16px;border-radius:4px;color:#c4ccff;font-size:13.5px;margin:10px 0 4px}
+  .banner b{color:#fff}
+  code,.k{font-family:var(--mono);background:#10163a;color:#9fd0ff;padding:1px 6px;border-radius:4px;font-size:.92em}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel);color:#bcae6c}
+  td .k{font-size:.9em}
+  ul{margin:8px 0 8px 2px;padding-left:20px}
+  li{margin:4px 0}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:10px;border:1px solid var(--line);color:#9aa6e8;background:#0e1336}
+  .tag.dec{color:#9cffc7;border-color:#1f5f3e}
+  .tag.todo{color:#ffd27a;border-color:#5f4a1f}
+  .swatches{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+  .sw{width:120px;border:1px solid var(--line);border-radius:6px;overflow:hidden;font-family:var(--mono);font-size:11px}
+  .sw .chip{height:42px} .sw .lbl{padding:5px 7px;background:var(--panel);color:#cdd6ff}
+  .note{color:var(--dim);font-size:13px}
+
+  /* ===== 라이브 목업 — 터미널 창 ===== */
+  .term{margin:16px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;
+        background:var(--bg);box-shadow:0 10px 40px rgba(0,0,40,.5);font-family:var(--mono)}
+  .term .bar{display:flex;align-items:center;gap:8px;background:#0c1138;border-bottom:1px solid var(--line);
+             padding:8px 12px;color:var(--accent);font-size:13px;letter-spacing:1px}
+  .term .bar .dot{width:10px;height:10px;border-radius:50%}
+  .term .bar .t{margin:0 auto;color:#cfd8ff}
+  .term .body{display:grid;grid-template-columns:1fr 200px;min-height:340px}
+  @media(max-width:680px){.term .body{grid-template-columns:1fr}.roster{display:none!important}}
+  /* CRT 느낌(아주 옅은 스캔라인) */
+  .screen{position:relative;padding:14px 16px;overflow:hidden}
+  .screen::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);opacity:.35}
+  .log{display:flex;flex-direction:column;gap:7px;font-size:14px;min-height:300px}
+  .msg{white-space:pre-wrap;word-break:break-word}
+  .msg .who{font-weight:bold}
+  .me .who{color:var(--me)} .me{color:#cdeede}
+  .a1 .who{color:var(--ai1)} .a1{color:#cfeeff}
+  .a2 .who{color:var(--ai2)} .a2{color:#fff3cf}
+  .a3 .who{color:var(--ai3)} .a3{color:#ffdcf2}
+  .sys{color:var(--dim);font-style:normal}
+  .stopped{color:var(--stopped)}
+  .stopped .tagx{font-size:11px;border:1px solid #5a2730;border-radius:8px;padding:0 6px;margin-left:6px}
+  .cursor{display:inline-block;width:8px;background:currentColor;animation:blink 1s steps(1) infinite;margin-left:1px}
+  .cursor::after{content:"\00a0"}
+  @keyframes blink{50%{opacity:0}}
+  .composer{border-top:1px solid var(--line);padding:8px 16px;color:var(--me);background:var(--panel2);font-size:14px}
+  .composer .ps{color:var(--accent)}
+  .composer .ip{color:#cdeede}
+  /* 우측 참가자(roster) */
+  .roster{border-left:1px solid var(--line);background:var(--panel2);padding:12px 12px;font-size:13px}
+  .roster h4{margin:0 0 10px;color:#8fa0ff;font-size:12px;letter-spacing:1px;font-weight:normal}
+  .pp{display:flex;align-items:center;gap:7px;padding:5px 6px;border-radius:5px;margin-bottom:3px}
+  .pp .seat{color:var(--dim);width:14px;text-align:right}
+  .pp .nm{flex:1}
+  .pp .st{font-size:10.5px;color:var(--dim)}
+  .pp.floor{background:#16205a;outline:1px solid #2c3c8e}
+  .pp.floor .st{color:var(--accent)}
+  .pp.queued .st{color:#7fa0ff}
+  .pp.done .st{color:#5fae7f}
+  .pp .d{width:8px;height:8px;border-radius:50%}
+  .controls{margin:10px 0 0}
+  .controls button{font-family:var(--mono);background:#16205a;color:#cdd6ff;border:1px solid #2c3c8e;
+    padding:6px 12px;border-radius:5px;cursor:pointer;font-size:12px}
+  .controls button:hover{background:#1d2a73}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--dim);margin-top:8px}
+  .legend b{font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>225. UI/UX 설계 — ai-sarangbang</h1>
+  <div class="banner">
+    <b>자기완결.</b> [221] 제품·규칙 · [222] coordinator · [223] 데이터모델 · [224] 아키텍처를 <b>화면으로</b> 구체화. 90s PC통신(하이텔·나우누리) 감성의 "사랑방". 본 문서가 [221] O1(90s 감성 구체 스펙)을 확정한다.
+    <br>변경 이력: v1 (2026-06-02 초안) · 충돌 시 규칙은 [221] §3 우선 · 표기: 이모지 미사용.
+  </div>
+
+  <h2>0. 디자인 원칙</h2>
+  <ul>
+    <li><b>터미널이 곧 방</b> — 하나의 어두운 모노스페이스 화면. 창·탭·사이드바 최소화. 대화 로그가 주인공.</li>
+    <li><b>화자는 색과 대괄호로 구분</b> — <code>[이름] 발언</code>. 사람·AI마다 고정 색([223] <code>Participant.color</code>).</li>
+    <li><b>한 번에 한 명</b>(floor, [221] R2) — "지금 누가 말하는가"를 roster 하이라이트 + 타이핑 커서로 즉시 인지.</li>
+    <li><b>글자별 타이핑</b> — 90s 감성의 핵심. 턴제 규칙이 눈에 보이게 만드는 장치(한 명 다 찍힌 뒤 다음).</li>
+    <li><b>귓속말은 시각적으로 격리</b>([221] R4) — 공개 로그와 다른 색·영역. 저장 안 됨을 UI가 명시.</li>
+    <li><b>접근성</b> — 색만으로 구분하지 않음(이름 라벨 병행), 명도 대비 확보, 모션 민감자 위해 타이핑 off 토글.</li>
+  </ul>
+
+  <h2>1. 디자인 토큰 (O1 확정안)</h2>
+  <h3>1.1 색 팔레트</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#0a0e2e"></div><div class="lbl">--bg #0a0e2e<br>하이텔 네이비</div></div>
+    <div class="sw"><div class="chip" style="background:#11173f"></div><div class="lbl">--panel #11173f</div></div>
+    <div class="sw"><div class="chip" style="background:#2a3470"></div><div class="lbl">--line #2a3470</div></div>
+    <div class="sw"><div class="chip" style="background:#cdd6ff"></div><div class="lbl">--ink #cdd6ff</div></div>
+    <div class="sw"><div class="chip" style="background:#6b76b8"></div><div class="lbl">--dim #6b76b8<br>시스템</div></div>
+    <div class="sw"><div class="chip" style="background:#ffcc00"></div><div class="lbl">--accent #ffcc00</div></div>
+    <div class="sw"><div class="chip" style="background:#46ff9c"></div><div class="lbl">나(human) #46ff9c</div></div>
+    <div class="sw"><div class="chip" style="background:#5ad1ff"></div><div class="lbl">AI-1 #5ad1ff</div></div>
+    <div class="sw"><div class="chip" style="background:#ffd24a"></div><div class="lbl">AI-2 #ffd24a</div></div>
+    <div class="sw"><div class="chip" style="background:#ff7ad1"></div><div class="lbl">AI-3 #ff7ad1</div></div>
+    <div class="sw"><div class="chip" style="background:#b388ff"></div><div class="lbl">귓속말 #b388ff</div></div>
+    <div class="sw"><div class="chip" style="background:#ff5b6e"></div><div class="lbl">중단 #ff5b6e</div></div>
+  </div>
+  <p class="note">역할 색은 좌석순으로 팔레트에서 순환 배정([223] <code>Participant.color</code> 미지정 시 기본). 사람(나)은 항상 초록 고정.</p>
+
+  <h3>1.2 타이포 · 모션</h3>
+  <table>
+    <tr><th>토큰</th><th>값</th><th>비고</th></tr>
+    <tr><td>폰트(목업/화면)</td><td class="k">'Galmuri11','DungGeunMo','NeoDunggeunmo','D2Coding',monospace</td><td>둥근모/갈무리 = 90s 한글 비트맵 감성. 미설치 시 시스템 monospace 폴백</td></tr>
+    <tr><td>본문 크기</td><td class="k">14px / line-height 1.6</td><td>로그 가독</td></tr>
+    <tr><td>타이핑 속도</td><td class="k">28ms/자 (기본)</td><td><code>config.typingMs</code>로 조절. 0 = 즉시(접근성/속도)</td></tr>
+    <tr><td>커서</td><td class="k">█ blink 1s steps(1)</td><td>floor 보유자 발언 끝에만</td></tr>
+    <tr><td>스캔라인(CRT)</td><td class="k">opacity .35 (옵션)</td><td>토글 가능. 과하지 않게</td></tr>
+  </table>
+
+  <h2>2. 화면 구성 (레이아웃)</h2>
+  <p>단일 화면 = <b>터미널 창</b>. 좌측(대화 로그 + 입력) · 우측(참가자 roster). 귓속말은 오버레이.</p>
+  <pre class="k" style="background:#0d1235;border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:12.5px;color:#aeb9ff">
+┌─ ■ 사랑방 ■ ─────────────────────────────┬─ 참가자 ──────┐
+│  ── 사랑방에 입장했습니다 ──               │ 0 나      ●   │
+│  * 클로드, 제미니, 딥식 님 입장            │ 1 클로드 발언중│
+│                                          │ 2 제미니 대기 │
+│  [나] 오늘 저녁 뭐 먹지?                   │ 3 딥식   대기 │
+│  [클로드] 비 오니까 파전 어때요?█          │               │
+│                                          │ [귓속말]      │
+│                                          │               │
+├──────────────────────────────────────────┴───────────────┤
+│ > _                                        (Enter 전송)   │
+└──────────────────────────────────────────────────────────┘</pre>
+  <ul>
+    <li><b>로그 영역</b>(<code>Room.tsx</code>, [224] §4) — 공개 history만. 자동 하단 스크롤. 시스템 라인은 흐린 색.</li>
+    <li><b>입력 영역</b>(<code>Composer.tsx</code>) — <code>&gt;</code> 프롬프트. Enter = <code>startTurn</code>([222] 유일 진입점). 턴 진행 중 Enter = 바지인(D3).</li>
+    <li><b>Roster</b>(<code>Roster.tsx</code>) — 좌석순([223] <code>seat</code>), 사람/AI, 색 점, <b>발언중(floor)/대기(queued)/완료(done)</b> 상태.</li>
+    <li><b>귓속말 패널</b>(<code>WhisperPanel.tsx</code>) — 오버레이/드로어. 휘발 표식.</li>
+  </ul>
+
+  <h2>3. 라이브 목업 (인터랙티브)</h2>
+  <p class="note">아래는 실제 렌더 + 스크립트 데모. floor 직렬화(한 명씩 타이핑) → 바지인(사람이 끊음=중단 표식) → 다음 턴을 보여준다. 버튼으로 재생/타이핑 토글. (데모 표시명·라벨은 시연용 리터럴 — 실제 구현은 §7 i18n 사전 키 + 이름 escape. 귓속말 데모는 발생 사실만 표시하고 내용은 공개 로그에 안 남김.)</p>
+
+  <div class="term">
+    <div class="bar">
+      <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+      <span class="t">■ 사랑방 ■  ai-sarangbang</span>
+    </div>
+    <div class="body">
+      <div style="display:flex;flex-direction:column">
+        <div class="screen" style="flex:1"><div class="log" id="log"></div></div>
+        <div class="composer"><span class="ps">&gt; </span><span class="ip" id="ip"></span><span class="cursor" id="ipcur"></span></div>
+      </div>
+      <div class="roster">
+        <h4>참가자 (seat순)</h4>
+        <div id="roster"></div>
+        <div class="controls">
+          <button id="replay">▶ 다시 재생</button>
+          <button id="toggle">타이핑: 켬</button>
+        </div>
+        <div class="legend" style="margin-top:14px">
+          <span><b style="color:var(--accent)">발언중</b> floor</span>
+          <span><b style="color:#7fa0ff">대기</b> queued</span>
+          <span><b style="color:#5fae7f">완료</b> done</span>
+          <span><b style="color:var(--stopped)">중단</b> stopped</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>4. 컴포넌트 → [224] <code>src/ui</code> 매핑</h2>
+  <table>
+    <tr><th>컴포넌트</th><th>책임</th><th>구독/디스패치 ([222])</th></tr>
+    <tr><td class="k">Room.tsx</td><td>공개 로그 렌더·자동 스크롤·시스템 라인</td><td>구독: <code>history</code>, <code>floorHolder</code></td></tr>
+    <tr><td class="k">MessageLine</td><td><code>[이름] 본문</code> 1줄. 색=<code>participant.color</code>, 상태별 표식</td><td>구독: <code>Message.status</code></td></tr>
+    <tr><td class="k">typing/Typewriter</td><td>floor 보유 발언을 글자별 출력 + 커서. <code>config.typingMs</code></td><td>구독: 현재 스트리밍 Message</td></tr>
+    <tr><td class="k">Roster.tsx</td><td>참가자 좌석순·상태(발언중/대기/완료)·색 점</td><td>구독: <code>participants</code>, turn-state, <code>floorHolder</code></td></tr>
+    <tr><td class="k">Composer.tsx</td><td>사람 입력 → <code>startTurn(humanMsg)</code>. 턴 중이면 바지인</td><td>디스패치: <code>startTurn</code></td></tr>
+    <tr><td class="k">WhisperPanel.tsx</td><td>1:1 사적 채널([221] R4). 휘발 표식·미저장 안내</td><td>디스패치: <code>whisper(target,text)</code></td></tr>
+    <tr><td class="k">SaveBar</td><td>공개 대화 MD 저장(요청 시, [223] §3). 귓속말 제외 안내</td><td>호출: <code>saveSessionMarkdown</code></td></tr>
+  </table>
+  <p class="note">[중요] UI는 [224] §1대로 Coordinator 상태를 <b>구독만</b>. 화면이 직접 floor를 만지지 않는다(단일 권위 루프 보존).</p>
+
+  <h2>5. 인터랙션 상태 (turn-state 시각화, [222] §3)</h2>
+  <table>
+    <tr><th>상태</th><th>로그 표현</th><th>Roster 표현</th></tr>
+    <tr><td><span class="tag">queued</span> 대기</td><td>(아직 발언 없음)</td><td>이름 옆 "대기" (파랑)</td></tr>
+    <tr><td><span class="tag dec">speaking</span> 발언중(floor)</td><td><code>[이름] 본문…█</code> 타이핑+커서</td><td>행 하이라이트 + "발언중"(노랑)</td></tr>
+    <tr><td><span class="tag">done</span> 완료</td><td><code>[이름] 본문</code> 정적</td><td>"완료"(초록)</td></tr>
+    <tr><td><span class="tag todo">stopped</span> 중단</td><td><code>[이름] 부분본문 <span class="stopped">(중단됨)</span></code> 빨강 표식·부분 보존</td><td>"중단"(빨강)</td></tr>
+    <tr><td><span class="tag todo">error</span> 오류 <span class="note">(Message 전용 status — turn-state 아님, [222] §3 H1)</span></td><td><code>[이름] <span class="stopped">(응답 오류)</span></code></td><td>Participant는 <b>중단(stopped)</b>으로 표시</td></tr>
+  </table>
+  <p class="note">[H1] `error`는 그 발언(Message)의 status일 뿐이고, 참가자(Participant) turn-state는 idle/queued/speaking/done/stopped 5종뿐. 드라이버 에러 시 Message=error·Participant=stopped([222] §9).</p>
+  <p class="note">바지인(D3): 사람이 발언중인 AI를 끊으면 그 줄이 <span class="stopped">(중단됨)</span>으로 고정(부분 텍스트 보존, [222] §5 completedNaturally 가드) → 사람 발언이 새 줄로.</p>
+
+  <h2>6. 귓속말(whisper) UI ([221] R4 · [222] §7)</h2>
+  <ul>
+    <li><b>진입</b>: roster의 참가자 클릭 → "[귓속말]" 또는 입력창에 <code>/w 이름 내용</code>.</li>
+    <li><b>격리 표현</b>: 보라색(<code>--whisper</code>) 별도 오버레이/드로어. 공개 로그와 절대 섞이지 않음.</li>
+    <li><b>휘발 명시</b>: 패널 상단에 <span class="note">"이 대화는 저장되지 않습니다"</span> 고정 배너. 닫으면 사라짐(MD·스냅샷 미기록, [223] §2).</li>
+    <li>턴 진행 중에도 가능(floor 독립). 같은 모델 경합 시 잠깐 대기 가능(P1, [222] C2).</li>
+  </ul>
+
+  <h2>7. 반응형 · 접근성</h2>
+  <ul>
+    <li><b>좁은 화면</b>(≤680px): roster 접힘 → 상단 요약 바 또는 토글. 로그·입력 우선.</li>
+    <li><b>색약</b>: 색 + 이름 라벨 병행(색 단독 의존 금지). 명도 대비 WCAG AA 목표.</li>
+    <li><b>모션 민감</b>: 타이핑 off 토글(<code>config.typingMs=0</code>) → 즉시 표시. <code>prefers-reduced-motion</code> 존중.</li>
+    <li><b>키보드</b>: Enter 전송, Esc 귓속말 닫기, ↑ 직전 입력 복구(선택).</li>
+    <li>i18n: 모든 라벨 ko/en(한글 하드코딩 금지, [221] §6). 시스템 문구도 사전 키.</li>
+  </ul>
+
+  <h2>8. 미해결</h2>
+  <table>
+    <tr><th>ID</th><th>항목</th><th>상태</th></tr>
+    <tr><td>U1</td><td>둥근모/갈무리 웹폰트 번들 여부(라이선스·용량) vs 시스템 monospace 폴백</td><td><span class="tag todo">미정</span> 구현 시</td></tr>
+    <tr><td>U2</td><td>입퇴장/턴 경계 시스템 라인 문구·표시 빈도</td><td><span class="tag todo">미정</span> O1 연동</td></tr>
+    <tr><td>U3</td><td>귓속말 = 오버레이 vs 사이드 드로어 vs 분할(P0 택1)</td><td><span class="tag todo">미정</span> 구현 시</td></tr>
+    <tr><td>U4</td><td>다인 AI 시 색 팔레트 순환 충돌(좌석 7+)</td><td><span class="tag todo">미정</span> 다인 시</td></tr>
+    <tr><td>U5</td><td>D1~D5(특히 D3 바지인) 확정에 따라 입력/중단 UX 미세조정</td><td><span class="tag todo">대기</span> [221] §4</td></tr>
+  </table>
+
+  <p class="note" style="margin-top:30px">— 본 문서는 자기완결 HTML. 브라우저로 더블클릭해 열면 목업이 동작합니다(외부 의존 없음). 폰트 둥근모/갈무리 미설치 시 시스템 monospace로 표시됩니다.</p>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // 참가자(seat순) — [223] Participant
+  var people=[
+    {id:'me', name:'나',   kind:'human', cls:'me', seat:0},
+    {id:'cl', name:'클로드', kind:'ai',  cls:'a1', seat:1},
+    {id:'ge', name:'제미니', kind:'ai',  cls:'a2', seat:2},
+    {id:'ds', name:'딥식',  kind:'ai',  cls:'a3', seat:3}
+  ];
+  var byId={}; people.forEach(function(p){byId[p.id]=p;});
+
+  // 스크립트 데모 이벤트 — floor 직렬화 + 바지인(D3) 시연
+  // type: sys | say(정상 발언) | sayCut(중간에 사람이 끊음=stopped) | human
+  var script=[
+    {t:'sys', text:'── 사랑방에 입장했습니다 ──'},
+    {t:'sys', text:'* 클로드, 제미니, 딥식 님이 입장하셨습니다'},
+    {t:'human', by:'me', text:'오늘 저녁 뭐 먹지?'},
+    {t:'say', by:'cl', text:'비 오니까 파전에 막걸리 어때요?'},
+    {t:'say', by:'ge', text:'저는 따뜻한 국밥 한 그릇 추천합니다.'},
+    {t:'sayCut', by:'ds', full:'마라탕으로 칼칼하게 가시죠. 두부도 넣고 버섯도', cut:'마라탕으로 칼칼하게 가'},
+    {t:'human', by:'me', text:'잠깐, 매운 건 패스!'},   // 바지인 — 위 딥식 발언이 (중단됨)
+    {t:'say', by:'cl', text:'그럼 파전으로 결정! 비 오는 날엔 최고죠.'},
+    {t:'sys', text:'── (귓속말) 나 → 제미니 — 내용은 공개 로그에 남지 않습니다 ──'}  // 휘발: 발생 사실만, 내용 제외(§6/§2)
+  ];
+
+  var logEl=document.getElementById('log');
+  var rosterEl=document.getElementById('roster');
+  var ipEl=document.getElementById('ip');
+  var typingOn=true, timer=null;
+
+  function setState(id,st){ byId[id].state=st; renderRoster(); }
+
+  function renderRoster(){
+    rosterEl.innerHTML='';
+    people.forEach(function(p){
+      var st=p.state||'';
+      var label = st==='floor'?'발언중': st==='queued'?'대기': st==='done'?'완료': st==='stopped'?'중단': (p.kind==='human'?'●':'');
+      var row=document.createElement('div');
+      row.className='pp'+(st?(' '+st):'');
+      var color = p.cls==='me'?'#46ff9c':p.cls==='a1'?'#5ad1ff':p.cls==='a2'?'#ffd24a':'#ff7ad1';
+      row.innerHTML='<span class="seat">'+p.seat+'</span>'+
+        '<span class="d" style="background:'+color+'"></span>'+
+        '<span class="nm" style="color:'+color+'">'+p.name+'</span>'+
+        '<span class="st">'+label+'</span>';
+      rosterEl.appendChild(row);
+    });
+  }
+
+  function addLine(cls, html){
+    var d=document.createElement('div');
+    d.className='msg '+cls; d.innerHTML=html;
+    logEl.appendChild(d);
+    var sc=logEl.parentElement; sc.scrollTop=sc.scrollHeight;
+    return d;
+  }
+  function who(p){ return '<span class="who">['+escapeHtml(p.name)+']</span> '; }
+
+  function typeInto(el, prefix, text, cls, done){
+    var i=0;
+    el.innerHTML=prefix+'<span class="body"></span><span class="cursor"></span>';
+    var body=el.querySelector('.body'), cur=el.querySelector('.cursor');
+    if(!typingOn){ body.textContent=text; if(cur)cur.remove(); return done&&done(); }
+    timer=setInterval(function(){
+      body.textContent=text.slice(0,++i);
+      logEl.parentElement.scrollTop=logEl.parentElement.scrollHeight;
+      if(i>=text.length){ clearInterval(timer); if(cur)cur.remove(); done&&done(); }
+    }, 28);
+  }
+
+  function step(n){
+    if(n>=script.length){ addLine('sys','── 데모 끝 · ▶ 다시 재생 ──'); return; }
+    var ev=script[n];
+    if(ev.t==='sys'){ addLine('sys', ev.text); return setTimeout(function(){step(n+1);}, typingOn?700:120); }
+    if(ev.t==='human'){
+      var p=byId[ev.by]; setState('me','');
+      // 입력창에 찍었다가 전송되는 느낌
+      typeInComposer(ev.text, function(){
+        ipEl.textContent='';
+        addLine(p.cls, who(p)+escapeHtml(ev.text));
+        // 직전이 sayCut(중단 대상)이면 마지막 발언을 중단 처리
+        markPrevCutIfNeeded(n);
+        setTimeout(function(){step(n+1);}, typingOn?500:80);
+      });
+      return;
+    }
+    // AI 발언 — floor 부여 후 타이핑
+    var p=byId[ev.by];
+    // 나머지는 대기(queued)
+    people.forEach(function(q){ if(q.kind==='ai' && q.id!==ev.by && !q.state) q.state='queued'; });
+    setState(ev.by,'floor');
+    var line=addLine(p.cls, '');
+    var text = ev.t==='sayCut'? ev.cut : ev.text;
+    typeInto(line, who(p), text, p.cls, function(){
+      if(ev.t==='sayCut'){
+        // 다음 이벤트(사람)가 끊는다 — 여기선 floor 유지한 채 잠깐 멈춤
+        line.dataset.cut='1'; line.dataset.who=p.name; line.dataset.cls=p.cls;
+        setState(ev.by,'floor');
+        setTimeout(function(){step(n+1);}, typingOn?260:60); // 곧 사람이 바지인
+      } else {
+        setState(ev.by,'done');
+        setTimeout(function(){step(n+1);}, typingOn?420:70);
+      }
+    });
+  }
+
+  function markPrevCutIfNeeded(humanIndex){
+    // 직전에 sayCut으로 floor 잡고 있던 줄을 (중단됨)으로 고정
+    var lines=logEl.querySelectorAll('.msg');
+    for(var i=lines.length-1;i>=0;i--){
+      if(lines[i].dataset && lines[i].dataset.cut==='1'){
+        var el=lines[i];
+        var body=el.querySelector('.body'); var cur=el.querySelector('.cursor'); if(cur)cur.remove();
+        var txt=body?body.textContent:'';
+        el.className='msg '+el.dataset.cls+' stopped';
+        el.innerHTML='<span class="who">['+el.dataset.who+']</span> '+escapeHtml(txt)+'<span class="tagx">중단됨</span>';
+        // 해당 참가자 stopped
+        people.forEach(function(q){ if(q.name===el.dataset.who) q.state='stopped'; });
+        renderRoster();
+        break;
+      }
+    }
+  }
+
+  function typeInComposer(text, done){
+    var i=0; ipEl.textContent='';
+    if(!typingOn){ ipEl.textContent=text; return setTimeout(done,120); }
+    var iv=setInterval(function(){
+      ipEl.textContent=text.slice(0,++i);
+      if(i>=text.length){ clearInterval(iv); setTimeout(done,260); }
+    },34);
+  }
+
+  function escapeHtml(s){ return s.replace(/[&<>]/g,function(c){return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;';}); }
+
+  function start(){
+    if(timer) clearInterval(timer);
+    logEl.innerHTML=''; ipEl.textContent='';
+    people.forEach(function(p){ p.state=(p.kind==='human'?'':''); });
+    byId['me'].state=''; renderRoster();
+    step(0);
+  }
+
+  document.getElementById('replay').onclick=start;
+  document.getElementById('toggle').onclick=function(){
+    typingOn=!typingOn; this.textContent='타이핑: '+(typingOn?'켬':'끔');
+  };
+
+  renderRoster();
+  start();
+})();
+</script>
+</body>
+</html>
