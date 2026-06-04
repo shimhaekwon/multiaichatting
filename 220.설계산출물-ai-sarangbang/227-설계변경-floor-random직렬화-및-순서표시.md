@@ -1,6 +1,6 @@
 # 227 — 설계 변경안: Floor "속도 경쟁" → "랜덤 순서 직렬" + 발언 순서 표시
 
-> **문서 버전: v1.0** (2026-06-04) · **상태: 검토 반영 완료 — 구현 대기**
+> **문서 버전: v1.1** (2026-06-05) · **상태: 구현 완료(`8ce01f5`) · 정본([221]§R2·[222]) 동기화 완료(2026-06-05) · D-D(자동 셔플) 구현 완료**
 > **확정 결정**: D-A=**B만(순번 배지)** · D-B=**코드만 먼저**(경량화 후속) · D-C=MD 미포함 · D-D·D-E=후속.
 > 대상 코드: `E:\workspace\ai-sarangbang` · 영향 정본: **[221] §R2** · **[222]** · **[223]** · `core-purity.test`
 > 변경 이력: 본 문서 **§9** + 폴더 `CHANGELOG.md`. 트리거: 라이브 디버깅 — `EXAONE`·`Qwen3` 연속 "응답 없음".
@@ -95,7 +95,7 @@
 - **core 순수성([224]§1)**: 생성자 `opts.rng?: () => number`(기본 `Math.random`) 주입 → 시드 rng로 결정성 테스트.
   > **H3**: 현 `core-purity.test.ts`는 react·document/window만 검사하고 **`Math.random`은 안 막는다**. → **`core-purity.test.ts`에 `/\bMath\.random\b/` 금지 정규식 추가**(§5). 생성자 기본값의 `Math.random` *참조*는 호출이 아니라 무해하나, core에서의 직접 *호출*을 가드.
 - **D3 인터럽트(M1)**: `break`는 루프 top(다음 화자 `current` 생성 전). 진행 중 화자는 `startTurn`의 `this.current?.abort()`가 중단 → `streamMessage` catch가 `stopped`. 종료 블록(`floorHolder=null`·`onOrder(new Map())`·status)은 **무조건 실행**.
-- **single-flight(`busy`)·whisper·자동대화(C3)**: 그대로(자동 모드 셔플=D-D 후속). 단 자동 턴 진입 시에도 `onOrder(new Map())`로 직전 사람턴 배지 잔류 방지.
+- **single-flight(`busy`)·whisper·자동대화(C3)**: 그대로(자동 모드 셔플=D-D, **2026-06-05 구현**: `pickAutoSpeaker` 랜덤+직전 화자 연속 회피). 단 자동 턴 진입 시에도 `onOrder(new Map())`로 직전 사람턴 배지 잔류 방지.
 
 ---
 
@@ -144,12 +144,12 @@
 
 ---
 
-## 5. 정본 / 메모리 정합 (구현 후 갱신)
-- **[221] §R2** "속도 경쟁 floor" → **"랜덤 순서 직렬 floor"** 개정.
-- **[222]** coordinator 상태머신: race 흐름 → 직렬 흐름 + `speakOne`/`onOrder` 갱신.
-- **`core-purity.test.ts`**: `Math.random` 가드 추가(H3).
-- 처리내역 + `MEMORY.md` + 폴더 `CHANGELOG.md` 반영.
-- ~~[223] `SystemLine` `turn-start` 실사용~~ — **삭제**(M4: B만 채택으로 `turn-start` 미사용, 후속).
+## 5. 정본 / 메모리 정합 (✅ 완료 2026-06-05)
+- ✅ **[221] §R2/§R3/§4 D4/§5 용어집** "속도 경쟁·FIFO 큐" → **"랜덤 순서 직렬"** 개정(v2).
+- ✅ **[222] §1/§2/§4 의사코드/§5/§9/§10** race·queue·enqueue·collectIntents·drainFloor 흐름 → 직렬 흐름 + `shuffle`/`collectSpeakers`/`speakOne`/`onOrder`/자동(`runAutoTurn`·`pickAutoSpeaker`)/`dispose` 갱신(v4).
+- ✅ **`core-purity.test.ts`**: `Math.random` 가드 추가(H3, `8ce01f5`).
+- ✅ 처리내역 + `MEMORY.md` + 폴더 `CHANGELOG.md` 반영.
+- ✅ **[223] `SystemLine`·`Intent` 타입 삭제 완료**(`2af7323`) — 라운드 종료선은 SystemLine 부활이 아니라 **UI 전용 `computeRoundMarks`**로 구현(SystemLine 불요).
 
 ---
 
@@ -160,7 +160,7 @@
 | **D-A** | 순서 표시 방식 | **B만** — Roster 순번 배지 (A=시스템 라인은 후속) |
 | **D-B** | 모델 경량화 동반? | **코드만 먼저** — 경량화는 효과 본 뒤 별도(R3) |
 | **D-C** | MD 저장본에 순서 기록? | **미포함**(불변식 유지) |
-| **D-D** | 자동대화(C3) 셔플? | **후속** |
+| **D-D** | 자동대화(C3) 셔플? | **[구현 2026-06-05]** 랜덤 순서 + 직전 화자 연속 회피(`pickAutoSpeaker`) · 라운드 종료선(`computeRoundMarks`, 전원 한 바퀴) |
 | **D-E** | 반응성 가중·끼어듦 | **후속 백로그** |
 
 ---
