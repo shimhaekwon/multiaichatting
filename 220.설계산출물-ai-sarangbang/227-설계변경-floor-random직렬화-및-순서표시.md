@@ -95,7 +95,7 @@
 - **core 순수성([224]§1)**: 생성자 `opts.rng?: () => number`(기본 `Math.random`) 주입 → 시드 rng로 결정성 테스트.
   > **H3**: 현 `core-purity.test.ts`는 react·document/window만 검사하고 **`Math.random`은 안 막는다**. → **`core-purity.test.ts`에 `/\bMath\.random\b/` 금지 정규식 추가**(§5). 생성자 기본값의 `Math.random` *참조*는 호출이 아니라 무해하나, core에서의 직접 *호출*을 가드.
 - **D3 인터럽트(M1)**: `break`는 루프 top(다음 화자 `current` 생성 전). 진행 중 화자는 `startTurn`의 `this.current?.abort()`가 중단 → `streamMessage` catch가 `stopped`. 종료 블록(`floorHolder=null`·`onOrder(new Map())`·status)은 **무조건 실행**.
-- **single-flight(`busy`)·whisper·자동대화(C3)**: 그대로(자동 모드 셔플=D-D, **2026-06-05 구현**: `pickAutoSpeaker` 랜덤+직전 화자 연속 회피). 단 자동 턴 진입 시에도 `onOrder(new Map())`로 직전 사람턴 배지 잔류 방지.
+- **single-flight(`busy`)·whisper·자동대화(C3)**: 그대로(자동 모드 셔플=D-D, **2026-06-05 구현**: `pickAutoSpeaker` 바퀴 로테이션 — 전원 1회씩 균등). 단 자동 턴 진입 시에도 `onOrder(new Map())`로 직전 사람턴 배지 잔류 방지.
 
 ---
 
@@ -160,7 +160,7 @@
 | **D-A** | 순서 표시 방식 | **B만** — Roster 순번 배지 (A=시스템 라인은 후속) |
 | **D-B** | 모델 경량화 동반? | **코드만 먼저** — 경량화는 효과 본 뒤 별도(R3) |
 | **D-C** | MD 저장본에 순서 기록? | **미포함**(불변식 유지) |
-| **D-D** | 자동대화(C3) 셔플? | **[구현 2026-06-05]** 랜덤 순서 + 직전 화자 연속 회피(`pickAutoSpeaker`) · 라운드 종료선(`computeRoundMarks`, 전원 한 바퀴) |
+| **D-D** | 자동대화(C3) 셔플? | **[구현 2026-06-05]** 바퀴 로테이션(`pickAutoSpeaker` — 전원 1회씩·순서 랜덤·라운드 균등) · 라운드 종료선(`computeRoundMarks`, 전원 한 바퀴) |
 | **D-E** | 반응성 가중·끼어듦 | **후속 백로그** |
 
 ---

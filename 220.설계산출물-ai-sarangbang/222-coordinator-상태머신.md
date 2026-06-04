@@ -65,7 +65,8 @@ class Coordinator {
   private disposed = false                                // [228] teardown 후 모든 진입점·루프 차단
   private readonly rng: () => number                      // [227] 셔플 난수원(주입=결정성·core 순수성)
   private autoMode = false; private autoLeft = 0          // [C3] 자동 대화
-  private lastAutoSpeaker: ParticipantId | null = null    // [D-D] 자동턴 직전 화자(연속 회피)
+  private lastAutoSpeaker: ParticipantId | null = null    // [D-D] 자동턴 직전 화자(바퀴 경계 연속 회피)
+  private autoRoundSpoken = new Set<ParticipantId>()      // [D-D] 이번 자동 바퀴 발언자(전원 차면 새 바퀴 = 라운드 균등)
 
   // [v3.1] 생성자 = (room, driver, hooks{publish,onState,onWhisper,onRoom?,onAuto?,onOrder?}, opts{rng,contextLimit,auto*,willSpeak,whisperTimeoutMs})
   constructor(room, driver, hooks, opts = {}) { /* 필드·opts 바인딩(rng ??= Math.random) */ }
@@ -78,6 +79,7 @@ class Coordinator {
     humanMsg.status = 'done'                       // [C-1] 사람 발언=즉시 done(컨텍스트 포함)
     this.pending = humanMsg
     if (this.autoMode) this.setAuto(false)         // [C3] 사람 우선 → 자동 일시정지
+    this.autoRoundSpoken.clear()                   // [D-D] 사람 입력 = 자동 바퀴 리셋(라운드 경계 정합)
     if (this.busy) this.current?.abort()           // [D3] 진행 중 발언만 중단. 루프가 pending을 다음 턴으로
     else void this.runLoop()
   }
@@ -127,7 +129,7 @@ class Coordinator {
     await this.streamMessage(id, signal)   // 빈응답→error('응답 없음')·abort→stopped·드라이버에러→error
   }
 
-  // [C3] 자동 턴 — 한 AI([D-D] 랜덤 추첨·직전 화자 연속 회피)만 발언(사람 opener 없음).
+  // [C3] 자동 턴 — 한 AI([D-D] 바퀴 로테이션: 이번 바퀴 미발언자 중 추첨)만 발언(사람 opener 없음).
   private async runAutoTurn() {
     const ais = this.room.participants.filter(p => p.kind === 'ai').sort((a, b) => a.seat - b.seat)
     if (!ais.length) { this.setAuto(false); return }
@@ -138,10 +140,11 @@ class Coordinator {
     await this.streamMessage(speaker.id, ac.signal); this.current = null
     this.room.floorHolder = null; if (!this.pending) this.room.status = 'idle'
   }
-  // [D-D] 직전 화자 제외 후 rng 추첨(연속 회피). AI 1명뿐이면 그대로(불가피).
+  // [D-D] 바퀴 로테이션 — 이번 바퀴 미발언자 중 rng 추첨(전원 1회씩 = 라운드 균등). 바퀴 차면 리셋 + 경계 연속 회피.
   private pickAutoSpeaker(ais: Participant[]): Participant {
-    const pool = ais.length > 1 ? ais.filter(p => p.id !== this.lastAutoSpeaker) : ais
-    return pool[Math.floor(this.rng() * pool.length)]
+    let pool = ais.filter(p => !this.autoRoundSpoken.has(p.id))
+    if (pool.length === 0) { this.autoRoundSpoken.clear(); pool = ais.length > 1 ? ais.filter(p => p.id !== this.lastAutoSpeaker) : ais }
+    const pick = pool[Math.floor(this.rng() * pool.length)]; this.autoRoundSpoken.add(pick.id); return pick
   }
 
   // 단일 AI 발언 스트림(빈 응답=error '응답 없음', [227] H2). beginMessage/appendToken/endMessage = §4.1.
