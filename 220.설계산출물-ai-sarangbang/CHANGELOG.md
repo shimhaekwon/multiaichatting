@@ -9,6 +9,12 @@
 
 ## 2026-06-04
 
+### 228-진입로비-런타임모델선택.md — **v1.0 (신규)**
+- **신규 설계 변경안**: 진입 시 **로비**에서 로컬 Ollama 모델 목록(`/api/tags`)을 보여주고 AI별 **모델·이름·사고모드 선택 + 인원 가감** → 입장. **localStorage 영속**.
+- 사용자 희망 1~5(미실행 처리·thinking·영속화·인원가변·이름동기화) 전부 반영.
+- **최종 검토 반영(FIX-FIRST)**: uw-critic + 코드 정합 교차 → **C1**(`/ollama` proxy dev 전용 → preview.proxy)·**C2**(세션 teardown `Coordinator.dispose()` 부재·StrictMode 누수)·**H1**(buildSession 조립 verbatim)·**H2**(Mock 폴백 id 불일치)·**H3**(영속 스키마 버전·검증)·M1~4·L1~3.
+- 핵심: AgentDriver+participants 아키텍처는 건전, 수정은 teardown·proxy 범위·조립 재현. 상태: **구현 대기**.
+
 ### 227-설계변경-floor-random직렬화-및-순서표시.md — **v1.0 (신규)**
 - **신규 설계 변경안**: race(속도 경쟁 floor) → **랜덤 순서 직렬** 발언 + **Roster 순번 배지**.
 - **트리거**: 라이브 디버깅 — `EXAONE`·`Qwen3` 연속 "응답 없음".
